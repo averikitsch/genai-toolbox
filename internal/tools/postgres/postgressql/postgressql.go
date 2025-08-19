@@ -19,11 +19,13 @@ import (
 	"fmt"
 
 	yaml "github.com/goccy/go-yaml"
+	"github.com/googleapis/genai-toolbox/internal/python"
 	"github.com/googleapis/genai-toolbox/internal/sources"
 	"github.com/googleapis/genai-toolbox/internal/sources/alloydbpg"
 	"github.com/googleapis/genai-toolbox/internal/sources/cloudsqlpg"
 	"github.com/googleapis/genai-toolbox/internal/sources/postgres"
 	"github.com/googleapis/genai-toolbox/internal/tools"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -63,6 +65,8 @@ type Config struct {
 	AuthRequired       []string         `yaml:"authRequired"`
 	Parameters         tools.Parameters `yaml:"parameters"`
 	TemplateParameters tools.Parameters `yaml:"templateParameters"`
+	BeforeTool         string           `yaml:"before_tool"`
+	AfterTool          string           `yaml:"after_tool"`
 }
 
 // validate interface
@@ -108,12 +112,21 @@ func (cfg Config) Initialize(srcs map[string]sources.Source) (tools.Tool, error)
 		Pool:               s.PostgresPool(),
 		manifest:           tools.Manifest{Description: cfg.Description, Parameters: paramManifest, AuthRequired: cfg.AuthRequired},
 		mcpManifest:        mcpManifest,
+		BeforeTool:         cfg.BeforeTool,
+		AfterTool:          cfg.AfterTool,
 	}
 	return t, nil
 }
 
 // validate interface
 var _ tools.Tool = Tool{}
+
+type Pool interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+}
+
+// validate interface
+var _ Pool = &pgxpool.Pool{}
 
 type Tool struct {
 	Name               string           `yaml:"name"`
@@ -122,8 +135,10 @@ type Tool struct {
 	Parameters         tools.Parameters `yaml:"parameters"`
 	TemplateParameters tools.Parameters `yaml:"templateParameters"`
 	AllParams          tools.Parameters `yaml:"allParams"`
+	BeforeTool         string           `yaml:"before_tool"`
+	AfterTool          string           `yaml:"after_tool"`
 
-	Pool        *pgxpool.Pool
+	Pool        Pool
 	Statement   string
 	manifest    tools.Manifest
 	mcpManifest tools.McpManifest
@@ -131,6 +146,23 @@ type Tool struct {
 
 func (t Tool) Invoke(ctx context.Context, params tools.ParamValues) (any, error) {
 	paramsMap := params.AsMap()
+
+	if t.BeforeTool != "" {
+		var err error
+		var pythonResult any
+		fmt.Println(t.BeforeTool)
+		fmt.Println(paramsMap)
+		pythonResult, err = python.Execute(ctx, t.BeforeTool, paramsMap)
+		if err != nil {
+			return nil, fmt.Errorf("error executing before_tool: %w", err)
+		}
+		var ok bool
+		paramsMap, ok = pythonResult.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("before_tool did not return a map[string]any")
+		}
+	}
+
 	newStatement, err := tools.ResolveTemplateParams(t.TemplateParameters, t.Statement, paramsMap)
 	if err != nil {
 		return nil, fmt.Errorf("unable to extract template params %w", err)
@@ -159,6 +191,21 @@ func (t Tool) Invoke(ctx context.Context, params tools.ParamValues) (any, error)
 			vMap[f.Name] = v[i]
 		}
 		out = append(out, vMap)
+	}
+
+	if t.AfterTool != "" {
+		var err error
+		var pythonResult any
+		pythonResult, err = python.Execute(ctx, t.AfterTool, out)
+		if err != nil {
+			return nil, fmt.Errorf("error executing after_tool: %w", err)
+		}
+		// var ok bool
+		// out, ok = pythonResult.([]any)
+		// if !ok {
+		// 	return nil, fmt.Errorf("after_tool did not return a []any")
+		// }
+		return pythonResult, nil
 	}
 
 	return out, nil

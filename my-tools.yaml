@@ -1,0 +1,21 @@
+sources:
+  my-pg-source:
+    kind: cloud-sql-postgres
+    project: starter-akitsch
+    region: us-west2
+    instance: pg15-pgvector-demo
+    database: postgres
+    user: postgres
+    password: my-pg-pass
+tools:
+  search-workouts-by-activity:
+    kind: postgres-sql
+    source: my-pg-source
+    description: Search for workouts based on name.
+    parameters:
+      - name: name
+        type: string
+        description: The name of the activity
+    statement: SELECT * FROM workouts WHERE "Activity name" ILIKE '%' || $1 || '%';
+    # before_tool: print("Hello from before_tool")
+    after_tool: print("Hello from after_tool")
