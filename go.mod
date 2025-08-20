@@ -57,6 +57,8 @@ require (
 	gonum.org/v1/gonum v0.16.0 // indirect
 )
 
+require github.com/tliron/py4go v0.0.0-20250217190551-2a45aeb39bc7
+
 require (
 	cel.dev/expr v0.24.0 // indirect
 	cloud.google.com/go v0.121.4 // indirect

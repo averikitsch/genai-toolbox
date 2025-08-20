@@ -123,6 +123,10 @@ func (t Tool) Authorized(verifiedAuthServices []string) bool {
 	return tools.IsAuthorized(t.AuthRequired, verifiedAuthServices)
 }
 
+func (t Tool) InvokeBeforeTool(ctx context.Context, params tools.ParamValues) (tools.ParamValues, error) {
+	return params, nil
+}
+
 func (t Tool) Invoke(ctx context.Context, params tools.ParamValues) (any, error) {
 	// Invoke the tool with the provided parameters
 	paramsMap := params.AsMap()

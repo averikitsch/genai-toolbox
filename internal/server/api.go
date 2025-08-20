@@ -216,7 +216,14 @@ func toolInvokeHandler(s *Server, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.logger.DebugContext(ctx, fmt.Sprintf("invocation params: %s", params))
-
+	params, err = tool.InvokeBeforeTool(ctx, params)
+	if err != nil {
+		err = fmt.Errorf("error while invoking before tool: %w", err)
+		s.logger.DebugContext(ctx, err.Error())
+		_ = render.Render(w, r, newErrResponse(err, http.StatusBadRequest))
+		return
+	}
+	s.logger.DebugContext(ctx, fmt.Sprintf("invocation params after before tool: %s", params))
 	res, err := tool.Invoke(ctx, params)
 	if err != nil {
 		err = fmt.Errorf("error while invoking tool: %w", err)

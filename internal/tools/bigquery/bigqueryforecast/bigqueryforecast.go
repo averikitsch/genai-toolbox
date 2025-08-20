@@ -179,7 +179,7 @@ func (t Tool) Invoke(ctx context.Context, params tools.ParamValues) (any, error)
 		idColsArg = fmt.Sprintf(", id_cols => %s", idColsFormatted)
 	}
 
-	sql := fmt.Sprintf(`SELECT * 
+	sql := fmt.Sprintf(`SELECT *
 		FROM AI.FORECAST(
 			%s,
 			data_col => '%s',
@@ -244,4 +244,8 @@ func (t Tool) McpManifest() tools.McpManifest {
 
 func (t Tool) Authorized(verifiedAuthServices []string) bool {
 	return tools.IsAuthorized(t.AuthRequired, verifiedAuthServices)
+}
+
+func (t Tool) InvokeBeforeTool(ctx context.Context, params tools.ParamValues) (tools.ParamValues, error) {
+	return params, nil
 }

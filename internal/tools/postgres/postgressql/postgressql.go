@@ -63,6 +63,7 @@ type Config struct {
 	AuthRequired       []string         `yaml:"authRequired"`
 	Parameters         tools.Parameters `yaml:"parameters"`
 	TemplateParameters tools.Parameters `yaml:"templateParameters"`
+	BeforeTool         string           `yaml:"beforeTool"`
 }
 
 // validate interface
@@ -108,6 +109,7 @@ func (cfg Config) Initialize(srcs map[string]sources.Source) (tools.Tool, error)
 		Pool:               s.PostgresPool(),
 		manifest:           tools.Manifest{Description: cfg.Description, Parameters: paramManifest, AuthRequired: cfg.AuthRequired},
 		mcpManifest:        mcpManifest,
+		BeforeTool:         cfg.BeforeTool,
 	}
 	return t, nil
 }
@@ -122,6 +124,7 @@ type Tool struct {
 	Parameters         tools.Parameters `yaml:"parameters"`
 	TemplateParameters tools.Parameters `yaml:"templateParameters"`
 	AllParams          tools.Parameters `yaml:"allParams"`
+	BeforeTool         string           `yaml:"beforeTool"`
 
 	Pool        *pgxpool.Pool
 	Statement   string
@@ -178,4 +181,8 @@ func (t Tool) McpManifest() tools.McpManifest {
 
 func (t Tool) Authorized(verifiedAuthServices []string) bool {
 	return tools.IsAuthorized(t.AuthRequired, verifiedAuthServices)
+}
+
+func (t Tool) InvokeBeforeTool(ctx context.Context, params tools.ParamValues) (tools.ParamValues, error) {
+	return tools.Execute(ctx, t.BeforeTool, params)
 }

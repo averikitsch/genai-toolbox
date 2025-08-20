@@ -276,6 +276,10 @@ func (t Tool) Authorized(verifiedAuthServices []string) bool {
 	return tools.IsAuthorized(t.AuthRequired, verifiedAuthServices)
 }
 
+func (t Tool) InvokeBeforeTool(ctx context.Context, params tools.ParamValues) (tools.ParamValues, error) {
+	return params, nil
+}
+
 func BQTypeStringFromToolType(toolType string) (string, error) {
 	switch toolType {
 	case "string":

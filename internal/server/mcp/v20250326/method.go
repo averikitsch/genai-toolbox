@@ -117,6 +117,12 @@ func toolsCallHandler(ctx context.Context, id jsonrpc.RequestId, tools map[strin
 		err = fmt.Errorf("unauthorized Tool call: `authRequired` is set for the target Tool")
 		return jsonrpc.NewError(id, jsonrpc.INVALID_REQUEST, err.Error(), nil), err
 	}
+	params, err = tool.InvokeBeforeTool(ctx, params)
+	if err != nil {
+		err = fmt.Errorf("error while invoking before tool: %w", err)
+		return jsonrpc.NewError(id, jsonrpc.INTERNAL_ERROR, err.Error(), nil), err
+	}
+	logger.DebugContext(ctx, fmt.Sprintf("invocation params after before tool: %s", params))
 
 	// run tool invocation and generate response.
 	results, err := tool.Invoke(ctx, params)

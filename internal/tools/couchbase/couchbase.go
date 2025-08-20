@@ -174,3 +174,7 @@ func (t Tool) McpManifest() tools.McpManifest {
 func (t Tool) Authorized(verifiedAuthSources []string) bool {
 	return tools.IsAuthorized(t.AuthRequired, verifiedAuthSources)
 }
+
+func (t Tool) InvokeBeforeTool(ctx context.Context, params tools.ParamValues) (tools.ParamValues, error) {
+	return params, nil
+}
